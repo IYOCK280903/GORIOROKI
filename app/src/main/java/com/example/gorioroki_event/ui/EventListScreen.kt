@@ -17,7 +17,7 @@ import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gorioroki_event.models.Event
 import com.example.gorioroki_event.viewmodels.EventViewModel
-
+// Coba commit baru.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventListScreen(
