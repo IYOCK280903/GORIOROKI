@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- 1. Izin Jaringan (Sudah Benar) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Tag <application> hanya boleh ada satu -->
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -15,9 +17,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.GoRioRoki_Event"
         android:usesCleartextTraffic="true">
-        
-        <!-- PERBAIKAN PENTING: Menggunakan nama package lengkap untuk MainActivity -->
-        <!-- Karena namespace di build.gradle berbeda dengan package file Kotlin -->
+
+        <!-- Definisi Activity Utama -->
+        <activity android:name=".MainActivity" />
         <activity
             android:name="com.example.gorioroki_event.MainActivity"
             android:exported="true"
@@ -28,6 +30,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
     </application>
 
 </manifest>

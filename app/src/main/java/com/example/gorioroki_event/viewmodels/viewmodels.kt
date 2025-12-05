@@ -1,7 +1,5 @@
-// 1. PERBAIKAN: Package sudah benar (tanpa ada 'import' menempel)
 package com.example.gorioroki_event.viewmodels
 
-// 2. PERBAIKAN: Menghapus import yang duplikat dan merapikan
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,18 +8,17 @@ import com.example.gorioroki_event.models.Event
 import kotlinx.coroutines.launch
 
 class EventViewModel : ViewModel() {
-    // State untuk menampung data dari API
+    // State
     val events = mutableStateOf<List<Event>>(emptyList())
     val statistics = mutableStateOf<Map<String, String>?>(null)
     val error = mutableStateOf<String?>(null)
-    val isLoading = mutableStateOf(false) // Added isLoading state
+    val isLoading = mutableStateOf(false)
     val selectedEvent = mutableStateOf<Event?>(null)
 
     fun fetchAllEvents() {
         viewModelScope.launch {
             isLoading.value = true
             try {
-                // Sekarang RetrofitInstance sudah dikenali
                 val response = RetrofitInstance.api.getAllEvents()
                 if (response.status == 200) {
                     events.value = response.data ?: emptyList()
@@ -101,6 +98,8 @@ class EventViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.api.deleteEvent(id = id)
+
+                // Logika if dipulihkan, kode interface sampah dihapus
                 if (response.status == 200) {
                     onSuccess()
                     fetchAllEvents()
