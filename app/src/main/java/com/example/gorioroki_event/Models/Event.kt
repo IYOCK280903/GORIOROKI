@@ -1,7 +1,7 @@
 package com.example.gorioroki_event.models
 
 data class Event(
-    val id: String? = null, // ID bisa null saat create baru
+    val id: String?,
     val title: String,
     val date: String,
     val time: String,
@@ -10,3 +10,4 @@ data class Event(
     val capacity: Int,
     val status: String
 )
+    

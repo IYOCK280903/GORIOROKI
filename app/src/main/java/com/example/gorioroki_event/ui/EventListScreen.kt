@@ -1,111 +1,95 @@
 package com.example.gorioroki_event.ui
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.gorioroki_event.models.Event
+import androidx.navigation.NavController
 import com.example.gorioroki_event.viewmodels.EventViewModel
-// Coba commit baru.
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventListScreen(
     navController: NavController,
     viewModel: EventViewModel = viewModel()
 ) {
-    // Trigger fetch sekali saja saat screen pertama kali muncul
+    // Mengambil data setiap kali layar ini ditampilkan
     LaunchedEffect(Unit) {
         viewModel.fetchAllEvents()
     }
 
-    val events by viewModel.events
-    val isLoading by viewModel.isLoading
-    val errorMessage by viewModel.error
+    val events = viewModel.events.value
+    val isLoading = viewModel.isLoading.value
+    val error = viewModel.error.value
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Daftar Event") }
-            )
+            TopAppBar(title = { Text("Event List") })
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate("create_event") }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Buat Event Baru")
+            FloatingActionButton(onClick = {
+                navController.navigate("create_event")
+            }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Event")
             }
         }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
         ) {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-
-                errorMessage != null -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = errorMessage ?: "Terjadi kesalahan",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.fetchAllEvents() }) {
-                            Text("Coba Lagi")
-                        }
-                    }
-                }
-
-                events.isEmpty() -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Belum ada event", fontSize = 18.sp)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Tekan tombol + untuk membuat event baru")
-                    }
-                }
-
-                else -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(events, key = { it.id ?: 0 }) { event ->
-                            EventItem(
-                                event = event,
-                                onClick = {
-                                    event.id?.let { id ->
-                                        navController.navigate("event_detail/$id")
-                                    }
-                                }
-                            )
+            if (isLoading) {
+                CircularProgressIndicator()
+            } else if (error != null) {
+                Text("Error: $error")
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(events) { event ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                // Navigasi ke halaman detail jika diklik
+                                navController.navigate("event_detail/${event.id}")
+                            }
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text(event.title, style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "${event.date} at ${event.time}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
                     }
                 }
@@ -113,54 +97,4 @@ fun EventListScreen(
         }
     }
 }
-
-@Composable
-private fun EventItem(event: Event, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = event.title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${event.date} • ${event.time.ifBlank { "Waktu belum diatur" }}",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = event.location,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            ChipStatus(status = event.status)
-        }
-    }
-}
-
-@Composable
-private fun ChipStatus(status: String) {
-    val color = when (status.lowercase()) {
-        "upcoming" -> MaterialTheme.colorScheme.tertiaryContainer
-        "ongoing" -> MaterialTheme.colorScheme.primaryContainer
-        "completed" -> MaterialTheme.colorScheme.secondaryContainer
-        "cancelled" -> MaterialTheme.colorScheme.errorContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-
-    AssistChip(
-        onClick = { },
-        label = { Text(status.replaceFirstChar { it.uppercase() }) },
-        colors = AssistChipDefaults.assistChipColors(containerColor = color)
-    )
-}
+    

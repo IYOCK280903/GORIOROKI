@@ -19,7 +19,8 @@
         android:usesCleartextTraffic="true">
 
         <!-- Definisi Activity Utama -->
-        <activity android:name=".MainActivity" />
+        <!-- Perbaikan: Menghapus Activity duplikat yang mengarah ke .MainActivity -->
+        <!-- Activity utama dengan intent-filter harus tetap ada -->
         <activity
             android:name="com.example.gorioroki_event.MainActivity"
             android:exported="true"
