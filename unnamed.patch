@@ -1,0 +1,105 @@
+Index: app/src/main/java/com/example/gorioroki_event/MainActivity.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/gorioroki_event/MainActivity.kt b/app/src/main/java/com/example/gorioroki_event/MainActivity.kt
+--- a/app/src/main/java/com/example/gorioroki_event/MainActivity.kt
++++ b/app/src/main/java/com/example/gorioroki_event/MainActivity.kt	(date 1765213791068)
+@@ -3,45 +3,65 @@
+ import android.os.Bundle
+ import androidx.activity.ComponentActivity
+ import androidx.activity.compose.setContent
+-import androidx.activity.enableEdgeToEdge
+ import androidx.compose.foundation.layout.fillMaxSize
+-import androidx.compose.foundation.layout.padding
+-import androidx.compose.material3.Scaffold
+-import androidx.compose.material3.Text
+-import androidx.compose.runtime.Composable
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.material3.Surface
+ import androidx.compose.ui.Modifier
+-import androidx.compose.ui.tooling.preview.Preview
++import androidx.navigation.compose.NavHost
++import androidx.navigation.compose.composable
++import androidx.navigation.compose.rememberNavController
++import com.example.gorioroki_event.ui.ApiTesterScreen
++import com.example.gorioroki_event.ui.CreateEventScreen
++import com.example.gorioroki_event.ui.EditEventScreen
++import com.example.gorioroki_event.ui.EventDetailScreen
++import com.example.gorioroki_event.ui.EventListScreen
+ import com.example.gorioroki_event.ui.theme.GoRioRoki_EventTheme
+ 
+ class MainActivity : ComponentActivity() {
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
+-        enableEdgeToEdge()
+         setContent {
+             GoRioRoki_EventTheme {
+-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+-                    Greeting(
+-                        name = "Android",
+-                        modifier = Modifier.padding(innerPadding)
+-                    )
+-                }
+-            }
+-        }
+-    }
+-}
++                Surface(
++                    modifier = Modifier.fillMaxSize(),
++                    color = MaterialTheme.colorScheme.background
++                ) {
++                    val navController = rememberNavController()
++
++                    // Ganti startDestination ke "api_tester" untuk melihat tampilan dashboard baru
++                    NavHost(navController = navController, startDestination = "api_tester") {
++
++                        // Halaman API Tester Dashboard (Sesuai Request)
++                        composable("api_tester") {
++                            // Panggil ApiTesterScreen TANPA parameter navController
++                            // karena kita sudah menghapusnya di file ApiTesterScreen.kt
++                            ApiTesterScreen()
++                        }
++
++                        // Halaman List (Lama)
++                        composable("event_list") {
++                            EventListScreen(navController)
++                        }
++
++                        // Halaman Detail
++                        composable("event_detail/{eventId}") { backStackEntry ->
++                            val id = backStackEntry.arguments?.getString("eventId")
++                            EventDetailScreen(navController, id)
++                        }
+ 
+-@Composable
+-fun Greeting(name: String, modifier: Modifier = Modifier) {
+-    Text(
+-        text = "Hello $name!",
+-        modifier = modifier
+-    )
+-}
++                        // Halaman Create
++                        composable("create_event") {
++                            CreateEventScreen(navController)
++                        }
+ 
+-@Preview(showBackground = true)
+-@Composable
+-fun GreetingPreview() {
+-    GoRioRoki_EventTheme {
+-        Greeting("Android")
++                        // Halaman Edit
++                        composable("edit_event/{eventId}") { backStackEntry ->
++                            val id = backStackEntry.arguments?.getString("eventId")
++                            EditEventScreen(navController, id)
++                        }
++                    }
++                }
++            }
++        }
+     }
+-}
+\ No newline at end of file
++}

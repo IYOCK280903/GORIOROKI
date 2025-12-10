@@ -12,12 +12,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-// Pastikan file-file di bawah ini benar-benar ada di folder ui.
-// Jika belum ada, beri komentar pada baris import dan pemanggilannya di NavHost.
 import com.example.gorioroki_event.ui.CreateEventScreen
 import com.example.gorioroki_event.ui.EditEventScreen
 import com.example.gorioroki_event.ui.EventDetailScreen
 import com.example.gorioroki_event.ui.EventListScreen
+import com.example.gorioroki_event.ui.QuickActionsScreen // Import layar QuickActions
 import com.example.gorioroki_event.ui.theme.GoRioRoki_EventTheme
 
 class MainActivity : ComponentActivity() {
@@ -40,7 +39,7 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    // Ubah startDestination ke "event_list" karena ApiTesterScreen tidak ditemukan
+    // Start destination adalah event_list
     NavHost(navController = navController, startDestination = "event_list") {
 
         composable("event_list") {
@@ -49,7 +48,6 @@ fun AppNavigation() {
 
         composable("event_detail/{eventId}") { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId")
-            // Pastikan EventDetailScreen menerima null handling jika id tidak ada
             if (eventId != null) {
                 EventDetailScreen(navController, eventId)
             }
@@ -64,6 +62,11 @@ fun AppNavigation() {
             if (eventId != null) {
                 EditEventScreen(navController, eventId)
             }
+        }
+
+        // Rute baru untuk Quick Actions (Tester Screen)
+        composable("quick_actions") {
+            QuickActionsScreen(navController)
         }
     }
 }

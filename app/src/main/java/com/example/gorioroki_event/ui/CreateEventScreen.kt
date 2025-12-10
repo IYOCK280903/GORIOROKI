@@ -65,7 +65,10 @@ fun CreateEventScreen(
     var description by remember { mutableStateOf("") }
     var capacity by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("upcoming") }
-    var expanded by remember { mutableStateOf(false) }
+    
+    // State untuk dropdown menu
+    var expandedStatus by remember { mutableStateOf(false) }
+    var expandedCapacity by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
@@ -197,30 +200,54 @@ fun CreateEventScreen(
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // Capacity Input
-            OutlinedTextField(
-                value = capacity,
-                onValueChange = { input -> if (input.all { it.isDigit() }) capacity = input },
-                label = { Text("Capacity") },
-                // Menggunakan ikon Person sebagai pengganti People
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = RoundedCornerShape(12.dp)
-            )
+            // Capacity Input (Dropdown + Editable)
+            val capacityOptions = listOf("5", "10", "20", "50", "100", "200", "500")
+            ExposedDropdownMenuBox(
+                expanded = expandedCapacity,
+                onExpandedChange = { expandedCapacity = !expandedCapacity }
+            ) {
+                OutlinedTextField(
+                    value = capacity,
+                    onValueChange = { input -> 
+                        if (input.all { it.isDigit() }) capacity = input 
+                    },
+                    label = { Text("Capacity") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCapacity) },
+                    modifier = Modifier
+                        .menuAnchor(MenuAnchorType.PrimaryEditable, true)
+                        .fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedCapacity,
+                    onDismissRequest = { expandedCapacity = false }
+                ) {
+                    capacityOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                capacity = option
+                                expandedCapacity = false
+                            }
+                        )
+                    }
+                }
+            }
 
             // Status Dropdown
             ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
+                expanded = expandedStatus,
+                onExpandedChange = { expandedStatus = !expandedStatus }
             ) {
                 OutlinedTextField(
                     value = status.replaceFirstChar { it.uppercase() },
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Status") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedStatus) },
                     modifier = Modifier
                         // Update: Menggunakan overload menuAnchor() dengan parameter
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
@@ -228,15 +255,15 @@ fun CreateEventScreen(
                     shape = RoundedCornerShape(12.dp)
                 )
                 ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    expanded = expandedStatus,
+                    onDismissRequest = { expandedStatus = false }
                 ) {
                     listOf("upcoming", "ongoing", "completed", "cancelled").forEach { option ->
                         DropdownMenuItem(
                             text = { Text(option.replaceFirstChar { it.uppercase() }) },
                             onClick = {
                                 status = option
-                                expanded = false
+                                expandedStatus = false
                             }
                         )
                     }

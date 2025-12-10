@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Izinkan akses ke IP server online -->
+        <domain includeSubdomains="true">104.248.153.158</domain>
+        <!-- (Opsional) Tetap izinkan localhost jika suatu saat butuh debugging lokal -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+</network-security-config>

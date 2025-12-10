@@ -3,7 +3,6 @@ package com.example.gorioroki_event.viewmodels
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-// PERBAIKAN: Import dari paket 'apiservices' (huruf kecil)
 import com.example.gorioroki_event.apiservices.RetrofitInstance
 import com.example.gorioroki_event.models.Event
 import kotlinx.coroutines.launch
@@ -16,24 +15,26 @@ class EventViewModel : ViewModel() {
     val isLoading = mutableStateOf(false)
     val selectedEvent = mutableStateOf<Event?>(null)
 
-    // PERBAIKAN: Menggunakan response.isSuccessful dan response.body()
-    fun fetchAllEvents() {
+    // PERBAIKAN: Menambahkan parameter opsional untuk filter tanggal
+    fun fetchAllEvents(dateFrom: String? = null, dateTo: String? = null) {
         viewModelScope.launch {
             isLoading.value = true
             try {
-                // Panggil fungsi dari ApiService
-                val response = RetrofitInstance.api.getAllEvents()
+                // Mengirim parameter filter ke API
+                val response = RetrofitInstance.api.getAllEvents(dateFrom, dateTo)
 
                 if (response.isSuccessful) {
-                    // Jika berhasil, ambil datanya dari body
-                    events.value = response.body() ?: emptyList()
-                    error.value = null // Bersihkan error jika sukses
+                    val apiResponse = response.body()
+                    if (apiResponse != null && apiResponse.status == 200) {
+                        events.value = apiResponse.data ?: emptyList()
+                        error.value = null
+                    } else {
+                         error.value = apiResponse?.message ?: "Unknown API error"
+                    }
                 } else {
-                    // Jika gagal (misal: 404, 500), tampilkan kode error
-                    error.value = "Error fetching events: ${response.code()}"
+                    error.value = "Error fetching events: ${response.code()} ${response.message()}"
                 }
             } catch (e: Exception) {
-                // Jika terjadi error jaringan (misal: tidak ada internet)
                 error.value = "Network Error: ${e.message}"
             } finally {
                 isLoading.value = false
@@ -41,16 +42,21 @@ class EventViewModel : ViewModel() {
         }
     }
 
-    // PERBAIKAN: Menggunakan response.isSuccessful dan response.body()
     fun fetchEventById(id: String, onSuccess: (Event) -> Unit) {
         isLoading.value = true
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.api.getEventById(id = id)
                 if (response.isSuccessful) {
-                    response.body()?.let {
-                        selectedEvent.value = it
-                        onSuccess(it)
+                    val apiResponse = response.body()
+                     if (apiResponse != null && apiResponse.status == 200) {
+                        apiResponse.data?.let {
+                            selectedEvent.value = it
+                            onSuccess(it)
+                            error.value = null
+                        }
+                    } else {
+                        error.value = apiResponse?.message ?: "Error fetching event"
                     }
                 } else {
                     error.value = "Error fetching event: ${response.code()}"
@@ -63,15 +69,20 @@ class EventViewModel : ViewModel() {
         }
     }
 
-    // PERBAIKAN: Menggunakan response.isSuccessful
     fun createEvent(event: Event, onSuccess: () -> Unit) {
         isLoading.value = true
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.api.createEvent(event = event)
                 if (response.isSuccessful) {
-                    onSuccess()
-                    fetchAllEvents() // Muat ulang data setelah berhasil
+                     val apiResponse = response.body()
+                     if (apiResponse != null && (apiResponse.status == 200 || apiResponse.status == 201)) {
+                        onSuccess()
+                        fetchAllEvents() // Refresh list
+                        error.value = null
+                    } else {
+                        error.value = apiResponse?.message ?: "Failed to create event"
+                    }
                 } else {
                     error.value = "Failed to create: ${response.code()}"
                 }
@@ -83,15 +94,20 @@ class EventViewModel : ViewModel() {
         }
     }
 
-    // PERBAIKAN: Menggunakan response.isSuccessful
     fun updateEvent(id: String, event: Event, onSuccess: () -> Unit) {
         isLoading.value = true
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.api.updateEvent(id = id, event = event)
-                if (response.isSuccessful) {
-                    onSuccess()
-                    fetchAllEvents()
+                 if (response.isSuccessful) {
+                     val apiResponse = response.body()
+                     if (apiResponse != null && apiResponse.status == 200) {
+                        onSuccess()
+                        fetchAllEvents()
+                        error.value = null
+                    } else {
+                        error.value = apiResponse?.message ?: "Failed to update event"
+                    }
                 } else {
                     error.value = "Failed to update: ${response.code()}"
                 }
@@ -103,15 +119,20 @@ class EventViewModel : ViewModel() {
         }
     }
 
-    // PERBAIKAN: Menggunakan response.isSuccessful
     fun deleteEvent(id: String, onSuccess: () -> Unit) {
         isLoading.value = true
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.api.deleteEvent(id = id)
-                if (response.isSuccessful) {
-                    onSuccess()
-                    fetchAllEvents()
+                 if (response.isSuccessful) {
+                     val apiResponse = response.body()
+                     if (apiResponse != null && apiResponse.status == 200) {
+                        onSuccess()
+                        fetchAllEvents()
+                        error.value = null
+                    } else {
+                        error.value = apiResponse?.message ?: "Failed to delete event"
+                    }
                 } else {
                     error.value = "Failed to delete: ${response.code()}"
                 }
@@ -123,17 +144,19 @@ class EventViewModel : ViewModel() {
         }
     }
 
-    // PERBAIKAN: Menggunakan response.isSuccessful dan response.body()
     fun fetchStatistics() {
         isLoading.value = true
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.api.getStatistics()
                 if (response.isSuccessful) {
-                    // Anda mungkin perlu mengubah Map<String, Any> menjadi Map<String, String>
-                    // atau menangani konversi tipe data di sini.
-                    val stats = response.body()?.mapValues { it.value.toString() }
-                    statistics.value = stats
+                    val apiResponse = response.body()
+                    if (apiResponse != null && apiResponse.status == 200) {
+                        statistics.value = apiResponse.data
+                        error.value = null
+                    } else {
+                        error.value = apiResponse?.message ?: "Failed to fetch statistics"
+                    }
                 } else {
                     error.value = "Failed to fetch statistics: ${response.code()}"
                 }
