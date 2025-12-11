@@ -9,14 +9,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.gorioroki_event.ui.CreateEventScreen
 import com.example.gorioroki_event.ui.EditEventScreen
 import com.example.gorioroki_event.ui.EventDetailScreen
 import com.example.gorioroki_event.ui.EventListScreen
-import com.example.gorioroki_event.ui.QuickActionsScreen // Import layar QuickActions
+import com.example.gorioroki_event.ui.QuickActionsScreen
 import com.example.gorioroki_event.ui.theme.GoRioRoki_EventTheme
 
 class MainActivity : ComponentActivity() {
@@ -39,32 +41,32 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    // Start destination adalah event_list
     NavHost(navController = navController, startDestination = "event_list") {
 
         composable("event_list") {
             EventListScreen(navController)
         }
 
-        composable("event_detail/{eventId}") { backStackEntry ->
-            val eventId = backStackEntry.arguments?.getString("eventId")
-            if (eventId != null) {
-                EventDetailScreen(navController, eventId)
-            }
+        composable(
+            route = "event_detail/{eventId}",
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            EventDetailScreen(navController, eventId)
         }
 
         composable("create_event") {
             CreateEventScreen(navController)
         }
 
-        composable("edit_event/{eventId}") { backStackEntry ->
-            val eventId = backStackEntry.arguments?.getString("eventId")
-            if (eventId != null) {
-                EditEventScreen(navController, eventId)
-            }
+        composable(
+            route = "edit_event/{eventId}",
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            EditEventScreen(navController, eventId)
         }
 
-        // Rute baru untuk Quick Actions (Tester Screen)
         composable("quick_actions") {
             QuickActionsScreen(navController)
         }

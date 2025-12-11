@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    // Diganti agar sesuai dengan struktur package di folder src/main/java
     namespace = "com.example.gorioroki_event"
-    compileSdk = 36 // Diubah ke 36 karena library terbaru membutuhkan API level ini
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.gorioroki_event"
-        minSdk = 24
+        // PERBAIKAN: Menaikkan minSdk ke 26 agar adaptive-icon didukung
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"

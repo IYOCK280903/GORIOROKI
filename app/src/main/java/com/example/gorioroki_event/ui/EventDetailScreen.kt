@@ -1,52 +1,70 @@
 package com.example.gorioroki_event.ui
 
-import androidx.compose.foundation.layout.*
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.gorioroki_event.models.Event
+import androidx.navigation.NavController
 import com.example.gorioroki_event.viewmodels.EventViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventDetailScreen(
     navController: NavController,
-    eventId: String?,  // Bisa null dari NavArg
+    eventId: String,
     viewModel: EventViewModel = viewModel()
 ) {
-    // State yang lebih jelas
-    var event by remember { mutableStateOf<Event?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    // Gunakan state dari ViewModel secara langsung
+    val event by viewModel.selectedEvent
+    val isLoading by viewModel.isLoading
+    val error by viewModel.error
 
-    // Fetch data saat screen muncul atau eventId berubah
-    LaunchedEffect(eventId) {
-        if (eventId.isNullOrBlank()) {
-            errorMessage = "Event tidak ditemukan"
-            isLoading = false
-            return@LaunchedEffect
-        }
-
-        viewModel.fetchEventById(eventId) { fetchedEvent ->
-            event = fetchedEvent
-            isLoading = false
-            if (fetchedEvent == null) {
-                errorMessage = "Event tidak ditemukan atau gagal dimuat"
-            }
+    // Membersihkan state saat meninggalkan layar
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.selectedEvent.value = null
+            viewModel.error.value = null
         }
     }
 
-    // UI
+    // Mengambil data hanya sekali saat layar pertama kali dibuat
+    LaunchedEffect(eventId) {
+        viewModel.fetchEventById(eventId) { /* Data dihandle oleh state 'event' */ }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -54,7 +72,7 @@ fun EventDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Kembali"
                         )
                     }
@@ -65,80 +83,68 @@ fun EventDetailScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
         ) {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-
-                errorMessage != null -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { navController.popBackStack() }) {
-                            Text("Kembali")
-                        }
+            if (isLoading) {
+                CircularProgressIndicator()
+            } else if (error != null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = { viewModel.fetchEventById(eventId) {} }) {
+                        Text("Try Again")
                     }
                 }
+            } else if (event != null) {
+                val e = event!!
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    DetailItem(label = "Judul", value = e.title)
+                    DetailItem(label = "Tanggal", value = e.date)
+                    DetailItem(label = "Waktu", value = e.time.ifBlank { "-" })
+                    DetailItem(label = "Lokasi", value = e.location)
+                    DetailItem(label = "Deskripsi", value = e.description.ifBlank { "-" })
+                    DetailItem(label = "Kapasitas", value = e.capacity.toString())
+                    DetailItem(label = "Status", value = e.status.replaceFirstChar { it.uppercase() })
 
-                event != null -> {
-                    val e = event!!
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
-                    ) {
-                        DetailItem(label = "Judul", value = e.title)
-                        DetailItem(label = "Tanggal", value = e.date)
-                        DetailItem(label = "Waktu", value = e.time.ifBlank { "Tidak diatur" })
-                        DetailItem(label = "Lokasi", value = e.location)
-                        DetailItem(label = "Deskripsi", value = e.description)
-                        DetailItem(label = "Kapasitas", value = e.capacity.toString())
-                        DetailItem(label = "Status", value = e.status.replaceFirstChar { it.uppercase() })
+                    Spacer(modifier = Modifier.weight(1f)) // Mendorong tombol ke bawah
 
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                e.id?.let { navController.navigate("edit_event/$it") }
+                            },
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Button(
-                                onClick = {
-                                    // Pastikan id tidak null sebelum navigasi
-                                    e.id?.let { id ->
-                                        navController.navigate("edit_event/$id")
+                            Text("Edit")
+                        }
+                        Button(
+                            onClick = {
+                                e.id?.let {
+                                    viewModel.deleteEvent(it) {
+                                        Toast.makeText(context, "Event '${e.title}' deleted", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack()
                                     }
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Edit")
-                            }
-
-                            OutlinedButton(
-                                onClick = {
-                                    e.id?.let { id ->
-                                        viewModel.deleteEvent(id) {
-                                            navController.popBackStack()
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Text("Hapus")
-                            }
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Hapus")
                         }
                     }
                 }
+            } else {
+                // Jika event null dan tidak loading/error (kasus langka)
+                Text("Event not found.")
             }
         }
     }
@@ -146,18 +152,17 @@ fun EventDetailScreen(
 
 @Composable
 private fun DetailItem(label: String, value: String) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+    Column(modifier = Modifier.padding(vertical = 12.dp)) {
         Text(
             text = label,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary
         )
         Text(
             text = value,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(top = 4.dp)
         )
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(top = 12.dp))
     }
 }

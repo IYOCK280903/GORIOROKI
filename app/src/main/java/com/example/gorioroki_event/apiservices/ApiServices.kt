@@ -12,114 +12,65 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Query
 
-// =========================================================================
-// 1. INTERFACE SERVICE (DEFINISI ENDPOINT API)
-//    Interface ini mendefinisikan semua pemanggilan API untuk Event Management System.
-//    Metode Retrofit (GET, POST, PUT, DELETE) digunakan sesuai dengan desain RESTful API.
-// =========================================================================
-
+// --- 1. Interface Service untuk Retrofit ---
+// Disesuaikan 100% dengan dokumentasi API terbaru
 interface ApiService {
 
-    /**
-     * Mengambil daftar semua event.
-     * Secara opsional mendukung filter berdasarkan rentang tanggal.
-     * HTTP Method: GET
-     * Endpoint: api.php
-     * (Catatan: Fungsi ini tetap menggunakan Query 'date_from' dan 'date_to' seperti yang didefinisikan sebelumnya)
-     */
+    // GET /api.php -> Get all events
+    // GET /api.php?status=... -> Get events by status
+    // GET /api.php?date_from=...&date_to=... -> Get events by date range
+    // GET /api.php?date=... -> Get events by single date
     @GET("api.php")
     suspend fun getAllEvents(
+        @Query("status") status: String? = null,
+        @Query("date") date: String? = null,
         @Query("date_from") dateFrom: String? = null,
         @Query("date_to") dateTo: String? = null
     ): Response<ApiResponse<List<Event>>>
 
-    /**
-     * Mengambil detail event spesifik berdasarkan ID.
-     * HTTP Method: GET
-     * Endpoint: api.php?id={id}
-     */
+    // GET /api.php?id=... -> Get event by ID
     @GET("api.php")
     suspend fun getEventById(
-        // ID Event yang dicari dikirim melalui Query Parameter
         @Query("id") id: String
     ): Response<ApiResponse<Event>>
 
-    /**
-     * Membuat event baru.
-     * Data event dikirim melalui Body (JSON).
-     * HTTP Method: POST
-     * Endpoint: api.php
-     */
+    // POST /api.php -> Create new event
     @POST("api.php")
     suspend fun createEvent(
-        // Objek Event dikonversi menjadi JSON dan dikirim sebagai Body
         @Body event: Event
     ): Response<ApiResponse<Event>>
 
-    /**
-     * Memperbarui event yang sudah ada.
-     * ID event diidentifikasi melalui Query Parameter.
-     * Data update dikirim melalui Body (JSON).
-     * HTTP Method: PUT
-     * Endpoint: api.php?id={id}
-     */
+    // PUT /api.php?id=... -> Update event
     @PUT("api.php")
     suspend fun updateEvent(
-        // ID Event yang akan diupdate
         @Query("id") id: String,
-        // Data Event yang diperbarui
         @Body event: Event
     ): Response<ApiResponse<Event>>
 
-    /**
-     * Menghapus event spesifik berdasarkan ID.
-     * HTTP Method: DELETE
-     * Endpoint: api.php?id={id}
-     */
+    // DELETE /api.php?id=... -> Delete event
     @DELETE("api.php")
     suspend fun deleteEvent(
-        // ID Event yang akan dihapus
         @Query("id") id: String
     ): Response<ApiResponse<Unit>>
 
-    /**
-     * Mengambil data statistik event.
-     * Query Parameter 'stats=1' digunakan untuk memicu logika statistik di server.
-     * HTTP Method: GET
-     * Endpoint: api.php?stats=1
-     */
+    // GET /api.php?stats=1 -> Get statistics
     @GET("api.php")
     suspend fun getStatistics(
-        // Parameter 'stats' dengan nilai default 1 (sesuai API)
         @Query("stats") stats: Int = 1
     ): Response<ApiResponse<Map<String, Any>>>
 }
 
-
-// =========================================================================
-// 2. RETROFIT INSTANCE (SINGLETON OBJECT)
-//    Objek ini berfungsi untuk menginisialisasi dan menyediakan instance Retrofit.
-// =========================================================================
-
+// --- 2. Objek Singleton untuk Membuat Instance Retrofit ---
 object RetrofitInstance {
 
-    // BASE_URL mengarah ke server online yang tercantum dalam dokumentasi.
-    // Pastikan URL ini benar dan selalu diakhiri dengan garis miring (/).
-    // Contoh: "http://104.248.153.158/event-api/"
+    // Base URL sesuai dokumentasi
     private const val BASE_URL = "http://104.248.153.158/event-api/"
 
-    /**
-     * Instance ApiService yang dibuat secara lazy (saat pertama kali diakses).
-     */
     val api: ApiService by lazy {
         Retrofit.Builder()
-            // Menetapkan URL dasar
             .baseUrl(BASE_URL)
-            // Menambahkan konverter JSON (Gson)
             .addConverterFactory(GsonConverterFactory.create())
-            // Membuat instance Retrofit
             .build()
-            // Membuat implementasi dari ApiService
             .create(ApiService::class.java)
     }
 }

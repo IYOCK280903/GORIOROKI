@@ -15,13 +15,17 @@ class EventViewModel : ViewModel() {
     val isLoading = mutableStateOf(false)
     val selectedEvent = mutableStateOf<Event?>(null)
 
-    // PERBAIKAN: Menambahkan parameter opsional untuk filter tanggal
-    fun fetchAllEvents(dateFrom: String? = null, dateTo: String? = null) {
+    // Disesuaikan dengan dokumentasi API terbaru
+    fun fetchAllEvents(
+        status: String? = null,
+        date: String? = null,
+        dateFrom: String? = null,
+        dateTo: String? = null
+    ) {
         viewModelScope.launch {
             isLoading.value = true
             try {
-                // Mengirim parameter filter ke API
-                val response = RetrofitInstance.api.getAllEvents(dateFrom, dateTo)
+                val response = RetrofitInstance.api.getAllEvents(status, date, dateFrom, dateTo)
 
                 if (response.isSuccessful) {
                     val apiResponse = response.body()
