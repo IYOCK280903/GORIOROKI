@@ -1,6 +1,5 @@
 package com.example.gorioroki_event.ui
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.gorioroki_event.viewmodels.EventViewModel
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,12 +48,10 @@ fun EventDetailScreen(
     viewModel: EventViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    // Gunakan state dari ViewModel secara langsung
     val event by viewModel.selectedEvent
     val isLoading by viewModel.isLoading
     val error by viewModel.error
 
-    // Membersihkan state saat meninggalkan layar
     DisposableEffect(Unit) {
         onDispose {
             viewModel.selectedEvent.value = null
@@ -60,9 +59,10 @@ fun EventDetailScreen(
         }
     }
 
-    // Mengambil data hanya sekali saat layar pertama kali dibuat
     LaunchedEffect(eventId) {
-        viewModel.fetchEventById(eventId) { /* Data dihandle oleh state 'event' */ }
+        if (viewModel.selectedEvent.value?.id != eventId) {
+            viewModel.fetchEventById(eventId) {}
+        }
     }
 
     Scaffold(
@@ -76,7 +76,11 @@ fun EventDetailScreen(
                             contentDescription = "Kembali"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     ) { paddingValues ->
@@ -93,8 +97,18 @@ fun EventDetailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("Error: $error", color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Error fetching event with ID: $eventId",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Details: $error",
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                    Spacer(Modifier.height(16.dp))
                     Button(onClick = { viewModel.fetchEventById(eventId) {} }) {
                         Text("Try Again")
                     }
@@ -107,6 +121,7 @@ fun EventDetailScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp)
                 ) {
+                    DetailItem(label = "ID", value = e.id ?: "N/A")
                     DetailItem(label = "Judul", value = e.title)
                     DetailItem(label = "Tanggal", value = e.date)
                     DetailItem(label = "Waktu", value = e.time.ifBlank { "-" })
@@ -115,7 +130,7 @@ fun EventDetailScreen(
                     DetailItem(label = "Kapasitas", value = e.capacity.toString())
                     DetailItem(label = "Status", value = e.status.replaceFirstChar { it.uppercase() })
 
-                    Spacer(modifier = Modifier.weight(1f)) // Mendorong tombol ke bawah
+                    Spacer(modifier = Modifier.weight(1f))
 
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedButton(
@@ -143,8 +158,7 @@ fun EventDetailScreen(
                     }
                 }
             } else {
-                // Jika event null dan tidak loading/error (kasus langka)
-                Text("Event not found.")
+                Text("Event not found or has been deleted.")
             }
         }
     }
