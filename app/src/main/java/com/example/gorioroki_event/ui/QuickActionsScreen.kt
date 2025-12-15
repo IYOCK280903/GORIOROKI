@@ -2,6 +2,8 @@ package com.example.gorioroki_event.ui
 
 import android.app.DatePickerDialog
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -16,11 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material.icons.filled.Upcoming
@@ -29,7 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -39,11 +43,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +69,14 @@ import com.example.gorioroki_event.viewmodels.EventViewModel
 import java.util.Calendar
 import java.util.Locale
 
+// Palet Warna
+private val DarkBackgroundStart = Color(0xFF111827)
+private val DarkBackgroundEnd = Color(0xFF1F2937)
+private val AccentPink = Color(0xFFEC4899)
+private val AccentBlue = Color(0xFF3B82F6)
+private val GlassyColor = Color.White.copy(alpha = 0.05f)
+private val GlassyBorder = Color.White.copy(alpha = 0.1f)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickActionsScreen(
@@ -73,112 +86,163 @@ fun QuickActionsScreen(
     val context = LocalContext.current
     var showStatsDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Quick Actions (Tester)") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = DarkBackgroundStart
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            modifier = Modifier.background(
+                brush = Brush.verticalGradient(listOf(DarkBackgroundStart, DarkBackgroundEnd))
+            ),
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("Quick Actions", fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = Color.White
+                    )
+                )
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // --- SECTION: Get All & Statistics ---
+                ActionCard("General Actions") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                viewModel.fetchAllEvents()
+                                navController.navigate("event_list")
+                                Toast.makeText(context, "Fetching all events...", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("Get All Events") }
+
+                        Button(
+                            onClick = {
+                                viewModel.fetchStatistics()
+                                showStatsDialog = true
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentPink),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("Get Statistics") }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // --- SECTION: Get All & Statistics ---
-            ActionCard("General Actions") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                }
+
+                // --- SECTION: Filter Events ---
+                var status by remember { mutableStateOf<String?>(null) }
+                var date by remember { mutableStateOf<String?>(null) }
+                var dateFrom by remember { mutableStateOf<String?>(null) }
+                var dateTo by remember { mutableStateOf<String?>(null) }
+                
+                ActionCard("Filter Events") {
+                    // Filter by Status
+                    StatusFilterDropdown { status = it }
+                    Spacer(Modifier.height(8.dp))
+
+                    // Filter by Single Date
+                    DatePickerField(label = "Filter by Date", date = date) { date = it }
                     Button(
                         onClick = {
-                            viewModel.fetchAllEvents()
+                            viewModel.fetchAllEvents(status = status, date = date)
                             navController.navigate("event_list")
-                            Toast.makeText(context, "Fetching all events...", Toast.LENGTH_SHORT).show()
                         },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Get All Events") }
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Apply Filter") }
 
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        color = GlassyBorder
+                    )
+
+                    // Filter by Date Range
+                    DatePickerField(label = "From Date", date = dateFrom) { dateFrom = it }
+                    Spacer(Modifier.height(8.dp))
+                    DatePickerField(label = "To Date", date = dateTo) { dateTo = it }
                     Button(
                         onClick = {
-                            viewModel.fetchStatistics()
-                            showStatsDialog = true
+                            viewModel.fetchAllEvents(status = status, dateFrom = dateFrom, dateTo = dateTo)
+                            navController.navigate("event_list")
                         },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Get Statistics") }
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Apply Range Filter") }
                 }
-            }
 
-            // --- SECTION: Filter Events ---
-            var status by remember { mutableStateOf<String?>(null) }
-            var date by remember { mutableStateOf<String?>(null) }
-            var dateFrom by remember { mutableStateOf<String?>(null) }
-            var dateTo by remember { mutableStateOf<String?>(null) }
-            ActionCard("Filter Events") {
-                // Filter by Status
-                StatusFilterDropdown { status = it }
-                Spacer(Modifier.height(8.dp))
-
-                // Filter by Single Date
-                DatePickerField(label = "Filter by Date", date = date) { date = it }
-                Button(onClick = {
-                    viewModel.fetchAllEvents(status = status, date = date)
-                    navController.navigate("event_list")
-                }, modifier = Modifier.fillMaxWidth()) { Text("Apply Filter") }
-
-                HorizontalDivider(Modifier.padding(vertical = 16.dp))
-
-                // Filter by Date Range
-                DatePickerField(label = "From Date", date = dateFrom) { dateFrom = it }
-                DatePickerField(label = "To Date", date = dateTo) { dateTo = it }
-                Button(onClick = {
-                    viewModel.fetchAllEvents(status = status, dateFrom = dateFrom, dateTo = dateTo)
-                    navController.navigate("event_list")
-                }, modifier = Modifier.fillMaxWidth()) { Text("Apply Range Filter") }
-            }
-
-            // --- SECTION: Actions by ID ---
-            var eventIdInput by remember { mutableStateOf("") }
-            ActionCard("Actions by ID") {
-                OutlinedTextField(
-                    value = eventIdInput,
-                    onValueChange = { eventIdInput = it },
-                    label = { Text("Enter Event ID") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { if (eventIdInput.isNotBlank()) navController.navigate("event_detail/$eventIdInput") }, modifier = Modifier.weight(1f)) { Text("Get") }
-                    Button(onClick = { if (eventIdInput.isNotBlank()) navController.navigate("edit_event/$eventIdInput") }, modifier = Modifier.weight(1f)) { Text("Update") }
-                    Button(
-                        onClick = {
-                            if (eventIdInput.isNotBlank()) {
-                                viewModel.deleteEvent(eventIdInput) {
-                                    Toast.makeText(context, "Event #$eventIdInput Deleted!", Toast.LENGTH_SHORT).show()
-                                    eventIdInput = ""
+                // --- SECTION: Actions by ID ---
+                var eventIdInput by remember { mutableStateOf("") }
+                ActionCard("Actions by ID") {
+                    OutlinedTextField(
+                        value = eventIdInput,
+                        onValueChange = { eventIdInput = it },
+                        label = { Text("Enter Event ID", color = Color.Gray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AccentBlue,
+                            unfocusedBorderColor = GlassyBorder,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.LightGray,
+                            cursorColor = AccentBlue,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent
+                        )
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { if (eventIdInput.isNotBlank()) navController.navigate("event_detail/$eventIdInput") },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("Get") }
+                        
+                        Button(
+                            onClick = { if (eventIdInput.isNotBlank()) navController.navigate("edit_event/$eventIdInput") },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("Update") }
+                        
+                        Button(
+                            onClick = {
+                                if (eventIdInput.isNotBlank()) {
+                                    viewModel.deleteEvent(eventIdInput) {
+                                        Toast.makeText(context, "Event #$eventIdInput Deleted!", Toast.LENGTH_SHORT).show()
+                                        eventIdInput = ""
+                                    }
                                 }
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Delete") }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentPink),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("Delete") }
+                    }
                 }
             }
         }
-    }
 
-    if (showStatsDialog && viewModel.statistics.value != null) {
-        StatisticsDialog(statistics = viewModel.statistics.value!!, onDismiss = { showStatsDialog = false })
+        if (showStatsDialog && viewModel.statistics.value != null) {
+            StatisticsDialog(statistics = viewModel.statistics.value!!, onDismiss = { showStatsDialog = false })
+        }
     }
 }
 
@@ -193,15 +257,29 @@ fun StatusFilterDropdown(onStatusSelected: (String?) -> Unit) {
             value = selectedStatus ?: "All Status",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Filter by Status") },
+            label = { Text("Filter by Status", color = Color.Gray) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth()
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AccentBlue,
+                unfocusedBorderColor = GlassyBorder,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.LightGray,
+                cursorColor = AccentBlue,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent
+            )
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = DarkBackgroundEnd
+        ) {
             val statuses = listOf("All Status", "upcoming", "ongoing", "completed", "cancelled")
             statuses.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option.replaceFirstChar { it.uppercase() }) },
+                    text = { Text(option.replaceFirstChar { it.uppercase() }, color = Color.White) },
                     onClick = {
                         selectedStatus = option
                         onStatusSelected(if (option == "All Status") null else option)
@@ -217,11 +295,16 @@ fun StatusFilterDropdown(onStatusSelected: (String?) -> Unit) {
 fun ActionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(4.dp)
+        colors = CardDefaults.cardColors(containerColor = GlassyColor),
+        border = BorderStroke(1.dp, GlassyBorder),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = GlassyBorder
+            )
             content()
         }
     }
@@ -241,12 +324,29 @@ fun DatePickerField(label: String, date: String?, onDateSelected: (String) -> Un
         calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    OutlinedButton(
-        onClick = { datePickerDialog.show() },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(text = date?.let { "$label: $it" } ?: label)
-    }
+    OutlinedTextField(
+        value = date ?: "",
+        onValueChange = {},
+        readOnly = true,
+        label = { Text(label, color = Color.Gray) },
+        placeholder = { Text("Select Date", color = Color.Gray) },
+        trailingIcon = { 
+            IconButton(onClick = { datePickerDialog.show() }) {
+                Icon(Icons.Default.DateRange, contentDescription = "Select Date", tint = AccentBlue)
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = AccentBlue,
+            unfocusedBorderColor = GlassyBorder,
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.LightGray,
+            cursorColor = AccentBlue,
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent
+        )
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -268,7 +368,7 @@ fun StatisticsDialog(statistics: Map<String, Any>, onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Event Statistics") },
+        title = { Text("Event Statistics", color = Color.White) },
         text = {
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -282,8 +382,13 @@ fun StatisticsDialog(statistics: Map<String, Any>, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) { Text("Close") }
-        }
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = AccentPink)
+            ) { Text("Close") }
+        },
+        containerColor = DarkBackgroundEnd,
+        textContentColor = Color.LightGray
     )
 }
 
@@ -309,7 +414,7 @@ fun StatCard(stat: StatInfo, modifier: Modifier = Modifier) {
                     fontWeight = FontWeight.Bold,
                     color = stat.color
                 )
-                Text(text = stat.label, style = MaterialTheme.typography.bodyMedium)
+                Text(text = stat.label, style = MaterialTheme.typography.bodyMedium, color = Color.LightGray)
             }
         }
     }

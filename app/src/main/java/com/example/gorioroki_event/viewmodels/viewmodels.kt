@@ -14,6 +14,66 @@ class EventViewModel : ViewModel() {
     val error = mutableStateOf<String?>(null)
     val isLoading = mutableStateOf(false)
     val selectedEvent = mutableStateOf<Event?>(null)
+    
+    // Filter State
+    val currentFilter = mutableStateOf("all")
+
+    // Fungsi untuk mengubah filter dan mengambil ulang data
+    fun setFilter(filter: String) {
+        currentFilter.value = filter
+        // Ambil event berdasarkan status filter
+        val statusParam = if (filter == "all") null else filter
+        fetchAllEvents(status = statusParam)
+    }
+
+    // Mengembalikan list event (sudah difilter dari API)
+    fun getFilteredEvents(): List<Event> {
+        return events.value
+    }
+
+    // Mengambil jumlah event per status dari statistik
+    fun getStatusCounts(): Map<String, Int> {
+        val stats = statistics.value
+        if (stats != null) {
+            val getCount = { key: String ->
+                (stats[key] as? Number)?.toInt() 
+                ?: (stats[key] as? String)?.toIntOrNull() 
+                ?: 0
+            }
+            
+            // Coba ambil total, jika tidak ada hitung dari kategori lain
+            var total = getCount("total")
+            if (total == 0) total = getCount("all")
+            
+            val upcoming = getCount("upcoming")
+            val ongoing = getCount("ongoing")
+            val completed = getCount("completed")
+            val cancelled = getCount("cancelled")
+            
+            // Jika total masih 0, jumlahkan manual (optional logic)
+            if (total == 0) {
+                 total = upcoming + ongoing + completed + cancelled
+            }
+
+            return mapOf(
+                "all" to total,
+                "upcoming" to upcoming,
+                "ongoing" to ongoing,
+                "completed" to completed,
+                "cancelled" to cancelled
+            )
+        }
+
+        // Fallback ke data lokal (kurang akurat jika data terfilter)
+        val allEvents = events.value
+        return mapOf(
+            "all" to allEvents.size,
+            "upcoming" to allEvents.count { it.status.lowercase() == "upcoming" },
+            "ongoing" to allEvents.count { it.status.lowercase() == "ongoing" },
+            "completed" to allEvents.count { it.status.lowercase() == "completed" },
+            "cancelled" to allEvents.count { it.status.lowercase() == "cancelled" }
+        )
+    }
 
     // Disesuaikan dengan dokumentasi API terbaru
     fun fetchAllEvents(
@@ -25,7 +85,10 @@ class EventViewModel : ViewModel() {
         viewModelScope.launch {
             isLoading.value = true
             try {
-                val response = RetrofitInstance.api.getAllEvents(status, date, dateFrom, dateTo)
+                // Jika status tidak diberikan manual, gunakan currentFilter
+                val effectiveStatus = status ?: if (currentFilter.value != "all") currentFilter.value else null
+                
+                val response = RetrofitInstance.api.getAllEvents(effectiveStatus, date, dateFrom, dateTo)
 
                 if (response.isSuccessful) {
                     val apiResponse = response.body()
@@ -83,6 +146,7 @@ class EventViewModel : ViewModel() {
                      if (apiResponse != null && (apiResponse.status == 200 || apiResponse.status == 201)) {
                         onSuccess()
                         fetchAllEvents() // Refresh list
+                        fetchStatistics() // Refresh stats
                         error.value = null
                     } else {
                         error.value = apiResponse?.message ?: "Failed to create event"
@@ -108,6 +172,7 @@ class EventViewModel : ViewModel() {
                      if (apiResponse != null && apiResponse.status == 200) {
                         onSuccess()
                         fetchAllEvents()
+                        fetchStatistics() // Refresh stats
                         error.value = null
                     } else {
                         error.value = apiResponse?.message ?: "Failed to update event"
@@ -133,6 +198,7 @@ class EventViewModel : ViewModel() {
                      if (apiResponse != null && apiResponse.status == 200) {
                         onSuccess()
                         fetchAllEvents()
+                        fetchStatistics() // Refresh stats
                         error.value = null
                     } else {
                         error.value = apiResponse?.message ?: "Failed to delete event"
@@ -149,7 +215,6 @@ class EventViewModel : ViewModel() {
     }
 
     fun fetchStatistics() {
-        isLoading.value = true
         viewModelScope.launch {
             try {
                 val response = RetrofitInstance.api.getStatistics()
@@ -159,15 +224,13 @@ class EventViewModel : ViewModel() {
                         statistics.value = apiResponse.data
                         error.value = null
                     } else {
-                        error.value = apiResponse?.message ?: "Failed to fetch statistics"
+                        // don't set error for stats failure to avoid blocking UI
                     }
                 } else {
-                    error.value = "Failed to fetch statistics: ${response.code()}"
+                    // error.value = "Failed to fetch statistics: ${response.code()}"
                 }
             } catch (e: Exception) {
-                error.value = "Network Error: ${e.message}"
-            } finally {
-                isLoading.value = false
+                // silently fail
             }
         }
     }

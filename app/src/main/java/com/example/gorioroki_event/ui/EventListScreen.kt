@@ -83,9 +83,9 @@ fun EventListScreen(
     // Mengambil data saat layar pertama kali ditampilkan
     LaunchedEffect(Unit) {
         viewModel.fetchAllEvents()
+        viewModel.fetchStatistics()
     }
 
-    val events by viewModel.events
     val isLoading by viewModel.isLoading
     val error by viewModel.error
 
@@ -123,7 +123,10 @@ fun EventListScreen(
             ) {
                 // Header Kustom
                 ModernHeader(
-                    onRefreshClick = { viewModel.fetchAllEvents() },
+                    onRefreshClick = { 
+                        viewModel.fetchAllEvents() 
+                        viewModel.fetchStatistics()
+                    },
                     onQuickActionsClick = { navController.navigate("quick_actions") }
                 )
 
@@ -290,7 +293,7 @@ private fun ModernEventCard(event: Event, onClick: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 InfoRowModern(icon = Icons.Default.LocationOn, text = event.location)
                 Spacer(Modifier.height(4.dp))
-                InfoRowModern(icon = Icons.Default.Schedule, text = if (event.time.length >= 5) event.time.substring(0, 5) + " WIB" else event.time)
+                InfoRowModern(icon = Icons.Default.Schedule, text = if (event.time.length >= 5) event.time.take(5) + " WIB" else event.time)
             }
             Spacer(Modifier.width(8.dp))
             Box(
@@ -313,7 +316,7 @@ private fun ModernEventCard(event: Event, onClick: () -> Unit) {
 @Composable
 private fun DateBlockModern(dateString: String) {
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault())
-    val date = try { LocalDate.parse(dateString, formatter) } catch (e: Exception) { null }
+    val date = try { LocalDate.parse(dateString, formatter) } catch (_: Exception) { null }
     val day = date?.dayOfMonth?.toString() ?: "?"
     val month = date?.month?.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault())?.uppercase(Locale.getDefault()) ?: "???"
 
